@@ -1,17 +1,77 @@
 blueprint:
   id: wax-account-permission-auditor
+  name: Account Permission Auditor
   tier: 1
   category: security-auditing
   status: alpha-ready
+  version: 0.2
+
+metadata:
+  description: |
+    A powerful, educational auditor that scans WAX/Antelope accounts for permission
+    risks, misconfigurations, weak thresholds, single points of failure, and security
+    issues — with clear risk scoring, visual reports, and actionable recommendations.
+    All client-side.
+  target_audience:
+    - Human developers and account owners auditing security
+    - AI agents generating permission auditing tools
+    - Teams focused on account security and governance on WAX/Antelope
+  related_blueprints:
+    - wax-permission-visualizer-and-editor
+    - wax-safe-key-rotation-assistant
+    - wax-multi-sig-proposal-builder-and-simulator
+    - wax-secure-key-management-and-privacy-tools
 
 features:
   - permission_risk_scoring
   - batch_account_audit
   - visual_risk_heatmap
   - actionable_recommendations
-  - exportable_security_reports
+  - exportable_reports
+  - dangerous_relationship_detection
+  - multiple_integration_levels
+
+integration_levels:
+  minimal:
+    description: Basic single-account risk scoring
+    recommended_for: Quick checks and learning
+  recommended:
+    description: Full visual audit with heatmap, recommendations, and export
+    recommended_for: Most production and user-facing tools
+  advanced:
+    description: Batch scanning, advanced analytics, historical comparison
+    recommended_for: Enterprise or high-volume auditing use cases
 
 machine_instructions:
-  - "Implement 15+ permission risk rules"
-  - "Create visual risk heatmap and scoring"
-  - "Support batch scanning with export"
+  - |
+    Build risk scoring engine with 15+ permission safety rules.
+  - |
+    Create visual audit report with risk heatmap and clear recommendations.
+  - |
+    Support batch scanning of multiple accounts with export functionality.
+  - |
+    Detect dangerous permission relationships (e.g. active affecting owner).
+  - |
+    Prioritize clarity, actionability, and educational value in all outputs.
+
+technical_requirements:
+  framework: Next.js 15 + TypeScript (strict)
+  styling: Tailwind + shadcn/ui + custom pixel CSS
+  risk_engine: Pure client-side JavaScript
+  visualization: Heatmap + embedded PermissionTree
+  batch: Client-side processing with export
+  design_system: pixel-journey-design-system
+
+best_practices:
+  - Always provide clear, actionable recommendations alongside risk scores
+  - Use visual heatmaps for fast pattern recognition
+  - Highlight the most critical risks first
+  - Support both single-account and batch auditing
+  - Make reports exportable and shareable
+  - Integrate well with the companion Tier 1 security tools
+
+future_extensions:
+  - Historical permission change tracking
+  - Automated periodic auditing
+  - Integration with monitoring/alerting systems
+  - Advanced governance health scoring
