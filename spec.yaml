@@ -1,0 +1,17 @@
+blueprint:
+  id: wax-account-permission-auditor
+  tier: 1
+  category: security-auditing
+  status: alpha-ready
+
+features:
+  - permission_risk_scoring
+  - batch_account_audit
+  - visual_risk_heatmap
+  - actionable_recommendations
+  - exportable_security_reports
+
+machine_instructions:
+  - "Implement 15+ permission risk rules"
+  - "Create visual risk heatmap and scoring"
+  - "Support batch scanning with export"
