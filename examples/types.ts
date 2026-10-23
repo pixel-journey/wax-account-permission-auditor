@@ -14,12 +14,18 @@ export interface AuthAccount {
   weight: number;
 }
 
+export interface AuthWait {
+  waitSec: number;
+  weight: number;
+}
+
 export interface PermissionLevel {
   name: string;
   parent: string | null;
   threshold: number;
   keys: AuthKey[];
   accounts: AuthAccount[];
+  waits?: AuthWait[];
 }
 
 export interface AccountPermissions {
