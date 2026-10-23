@@ -1,10 +1,12 @@
+import { riskScoreLabel } from "./severityLabel";
 import type { PermissionAuditResult } from "./types";
 
 export function exportAuditMarkdown(result: PermissionAuditResult): string {
+  const label = riskScoreLabel(result.riskScore);
   const lines: string[] = [
     `# Permission audit — ${result.account}`,
     "",
-    `> Trust label: educational-reference · risk ${result.riskScore}/100`,
+    `> Trust label: educational-reference · risk ${result.riskScore}/100 (${label})`,
     "",
     result.summary,
     "",
@@ -25,10 +27,17 @@ export function exportAuditMarkdown(result: PermissionAuditResult): string {
 
   lines.push(
     "",
+    "## Scoring note",
+    "",
+    "- Additive: baseline 10 + critical 25 + warn 12 + info 3 (cap 100).",
+    "- Labels: low 0–34 · moderate 35–54 · high 55–74 · critical ≥75.",
+    "- Full detail: RISK-SCORING.md in this repo.",
+    "",
     "## Notes",
     "",
     "- Prefer **WharfKit** for any future authority changes.",
     "- Companion tree UI: wax-permission-visualizer-and-editor.",
+    "- linkauth surface is not fully visible via get_account — see LINKAUTH.md.",
     ""
   );
   return lines.join("\n");
@@ -52,6 +61,9 @@ export function exportAuditJson(result: PermissionAuditResult): string {
   return JSON.stringify(
     {
       trustLabel: "educational-reference",
+      riskScoreLabel: riskScoreLabel(result.riskScore),
+      scoringNote:
+        "baseline 10 + critical25/warn12/info3; bands in RISK-SCORING.md",
       result,
     },
     null,
@@ -67,7 +79,12 @@ export function exportBatchAuditJson(
     {
       trustLabel: "educational-reference",
       count: sorted.length,
-      results: sorted,
+      scoringNote:
+        "baseline 10 + critical25/warn12/info3; bands in RISK-SCORING.md",
+      results: sorted.map((r) => ({
+        ...r,
+        riskScoreLabel: riskScoreLabel(r.riskScore),
+      })),
     },
     null,
     2
