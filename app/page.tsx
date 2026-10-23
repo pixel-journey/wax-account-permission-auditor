@@ -6,7 +6,7 @@ import {
   demoStrongerOwner,
   demoWeakOwner,
 } from '../examples/engines';
-import { fetchAccountPermissions } from '../examples/live/chain';
+import { fetchAccountPermissionsSafe } from '../examples/live/chain';
 import type { PermissionAuditResult } from '../examples/types';
 
 type Mode = 'live' | 'weak' | 'strong';
@@ -33,16 +33,15 @@ export default function PermissionAuditor() {
     setLoading(true);
     setError(null);
     setMeta(null);
-    try {
-      const { permissions, source } = await fetchAccountPermissions(account);
-      setLiveResult(auditAccountPermissions(permissions));
-      setMeta(`get_account · ${source}`);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Live fetch failed');
+    const r = await fetchAccountPermissionsSafe(account);
+    setLoading(false);
+    if (!r.ok) {
+      setError(`Soft-fail: ${r.reason}`);
       setLiveResult(null);
-    } finally {
-      setLoading(false);
+      return;
     }
+    setLiveResult(auditAccountPermissions(r.permissions));
+    setMeta(`get_account · ${r.source}`);
   }, [account]);
 
   return (
@@ -51,9 +50,22 @@ export default function PermissionAuditor() {
         <div className="text-2xl tracking-widest text-emerald-400 mb-2 font-bold">
           PERMISSION AUDITOR
         </div>
-        <div className="text-xs opacity-60 mb-8">
-          Pixel Journey · Live get_account or demo · Structure rules only
+        <div className="text-xs opacity-60 mb-2">
+          Pixel Journey · Pass 1 · educational-reference
         </div>
+        <p className="text-xs opacity-50 mb-8 max-w-2xl">
+          Pure structure rules only. Prefer WharfKit for any future authority
+          changes. Companion visualizer:{' '}
+          <a
+            className="underline text-emerald-400"
+            href="https://github.com/pixel-journey/wax-permission-visualizer-and-editor"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            wax-permission-visualizer-and-editor
+          </a>
+          .
+        </p>
 
         <div className="flex flex-wrap gap-2 mb-6">
           <button
@@ -158,12 +170,6 @@ export default function PermissionAuditor() {
             Enter a WAX account and load live permissions from chain RPC.
           </p>
         )}
-
-        <div className="mt-8 text-xs opacity-60">
-          Live: <code className="text-emerald-400/80">get_account</code> →{' '}
-          <code className="text-emerald-400/80">auditAccountPermissions</code>. Pure
-          rules unchanged.
-        </div>
       </div>
     </div>
   );
