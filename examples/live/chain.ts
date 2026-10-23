@@ -6,6 +6,7 @@
 import type { AccountPermissions, PermissionLevel } from "../types";
 
 export const DEFAULT_RPC = "https://wax.greymass.com";
+export const DEFAULT_BATCH_DELAY_MS = 200;
 
 interface ChainKeyWeight {
   key: string;
@@ -47,6 +48,10 @@ export function mapChainPermissions(
     accounts: (p.required_auth?.accounts || []).map((a) => ({
       actorPermission: `${a.permission.actor}@${a.permission.permission}`,
       weight: a.weight,
+    })),
+    waits: (p.required_auth?.waits || []).map((w) => ({
+      waitSec: w.wait_sec,
+      weight: w.weight,
     })),
   }));
 
@@ -90,7 +95,6 @@ export async function fetchAccountPermissions(
   };
 }
 
-/** Soft-fail wrapper — never throws. */
 export async function fetchAccountPermissionsSafe(
   account: string,
   options: { rpcBase?: string; signal?: AbortSignal } = {}
@@ -107,4 +111,50 @@ export async function fetchAccountPermissionsSafe(
       reason: e instanceof Error ? e.message : "fetch failed",
     };
   }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Sequential soft-fail fetches with delay between accounts (RPC-friendly). */
+export async function fetchManyAccountPermissionsSafe(
+  accounts: string[],
+  options: {
+    rpcBase?: string;
+    delayMs?: number;
+    signal?: AbortSignal;
+  } = {}
+): Promise<{
+  ok: Array<{ account: string; permissions: AccountPermissions; source: string }>;
+  failed: Array<{ account: string; reason: string }>;
+}> {
+  const delay = options.delayMs ?? DEFAULT_BATCH_DELAY_MS;
+  const ok: Array<{
+    account: string;
+    permissions: AccountPermissions;
+    source: string;
+  }> = [];
+  const failed: Array<{ account: string; reason: string }> = [];
+
+  for (let i = 0; i < accounts.length; i++) {
+    if (options.signal?.aborted) {
+      failed.push({ account: accounts[i], reason: "aborted" });
+      continue;
+    }
+    const name = accounts[i];
+    const r = await fetchAccountPermissionsSafe(name, options);
+    if (r.ok) {
+      ok.push({
+        account: name,
+        permissions: r.permissions,
+        source: r.source,
+      });
+    } else {
+      failed.push({ account: name, reason: r.reason });
+    }
+    if (i < accounts.length - 1 && delay > 0) await sleep(delay);
+  }
+
+  return { ok, failed };
 }
