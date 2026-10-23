@@ -1,15 +1,15 @@
 # Verification Log
 
 **Trust label:** educational-reference  
-**Updated:** 2026-10-23 (Pass 1)
+**Updated:** 2026-10-23 (Pass 2)
 
 | Claim | Status | Evidence |
 |-------|--------|----------|
-| Pure audit rules (no account-name hard-codes) | **verified** (unit) | `examples/engines.test.ts` |
-| Soft-fail get_account | code present | `fetchAccountPermissionsSafe` |
-| Authority mutation | **not claimed** | audit only |
-
-Prefer **WharfKit** for any future signing outside this repo. Companion: `wax-permission-visualizer-and-editor`.
+| Pure audit rules | **verified** (unit) | engines.test.ts |
+| active must not control owner | **verified** (unit) | demoActiveControlsOwner |
+| Markdown export | **verified** (unit) | exportReport tests |
+| Soft-fail / batch live | code present | CORS/offline may fail |
+| Authority mutation | **not claimed** | |
 
 ```bash
 npm install && npm test
