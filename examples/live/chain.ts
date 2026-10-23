@@ -89,3 +89,22 @@ export async function fetchAccountPermissions(
     source: url,
   };
 }
+
+/** Soft-fail wrapper — never throws. */
+export async function fetchAccountPermissionsSafe(
+  account: string,
+  options: { rpcBase?: string; signal?: AbortSignal } = {}
+): Promise<
+  | { ok: true; permissions: AccountPermissions; source: string }
+  | { ok: false; reason: string }
+> {
+  try {
+    const r = await fetchAccountPermissions(account, options);
+    return { ok: true, ...r };
+  } catch (e) {
+    return {
+      ok: false,
+      reason: e instanceof Error ? e.message : "fetch failed",
+    };
+  }
+}
