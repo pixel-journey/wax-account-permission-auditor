@@ -47,3 +47,29 @@ export function exportBatchAuditMarkdown(
   const body = sorted.map((r) => exportAuditMarkdown(r)).join("\n---\n\n");
   return header.join("\n") + body;
 }
+
+export function exportAuditJson(result: PermissionAuditResult): string {
+  return JSON.stringify(
+    {
+      trustLabel: "educational-reference",
+      result,
+    },
+    null,
+    2
+  );
+}
+
+export function exportBatchAuditJson(
+  results: PermissionAuditResult[]
+): string {
+  const sorted = [...results].sort((a, b) => b.riskScore - a.riskScore);
+  return JSON.stringify(
+    {
+      trustLabel: "educational-reference",
+      count: sorted.length,
+      results: sorted,
+    },
+    null,
+    2
+  );
+}
