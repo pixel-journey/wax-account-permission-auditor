@@ -1,16 +1,21 @@
 # wax-account-permission-auditor
 
-> **Status:** 🔄 Deep Refinement (PX Perfection Standard v1.1)  
+> **Trust label:** `educational-reference`  
+> **Status:** Pass 1 deep refinement (PX Perfection)  
 > **Category:** Security / permission auditing  
 > **Parent Catalog:** [wax-ecosystem-blueprint-catalog](https://github.com/pixel-journey/wax-ecosystem-blueprint-catalog)
 
-**Goal:** Pure **rule-based audit** of Antelope-style permission structures — thresholds, single points of failure, unsatisfiable weights, owner/active hygiene — with actionable findings.
+**Goal:** Pure **rule-based audit** of Antelope-style permission structures — thresholds, single points of failure, unsatisfiable weights, owner/active hygiene — with actionable findings. Batch-friendly via `auditMany`.
+
+See [VERIFICATION-LOG.md](VERIFICATION-LOG.md).
 
 ---
 
 ## Honesty note
 
-Prior UI hard-coded findings by **account name** (`pxjourney` vs others). Rules now run only on `AccountPermissions` structure in `examples/engines.ts`.
+Rules run only on `AccountPermissions` structure in `examples/engines.ts` (no account-name hard-codes).
+
+This tool does **not** broadcast `updateauth`. Prefer **WharfKit** if you later implement proposals. Visual tree editing lives in [`wax-permission-visualizer-and-editor`](https://github.com/pixel-journey/wax-permission-visualizer-and-editor).
 
 ---
 
@@ -29,12 +34,15 @@ const result = auditAccountPermissions({
       keys: [{ publicKey: "PUB_K1_…", weight: 1 }],
       accounts: [],
     },
-    // active…
   ],
 });
 ```
 
-Production: map `get_account` → `PermissionLevel[]`.
+Live: `fetchAccountPermissionsSafe` → map → audit.
+
+```bash
+npm install && npm test && npm run dev
+```
 
 ---
 
@@ -49,14 +57,12 @@ Production: map `get_account` → `PermissionLevel[]`.
 
 ## Companions
 
-- `wax-permission-visualizer-and-editor`
+- `wax-permission-visualizer-and-editor` (Passes 1–10 frozen)
+- `wax-wharfkit-session-keys-and-linked-permissions`
 - `wax-safe-key-rotation-assistant`
-- `wax-multi-sig-proposal-builder-and-simulator`
 
 ---
 
 ## License
 
 MIT — **Pixel Journey**
-
-*Last major refinement: October 2026*
