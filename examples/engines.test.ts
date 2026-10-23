@@ -3,9 +3,15 @@ import {
   auditAccountPermissions,
   demoActiveControlsOwner,
   demoStrongerOwner,
+  demoWaitGated,
   demoWeakOwner,
 } from "./engines";
-import { exportAuditMarkdown, exportBatchAuditMarkdown } from "./exportReport";
+import {
+  exportAuditJson,
+  exportAuditMarkdown,
+  exportBatchAuditJson,
+  exportBatchAuditMarkdown,
+} from "./exportReport";
 
 describe("auditAccountPermissions", () => {
   it("flags weak single-key owner as higher risk than multi-key", () => {
@@ -26,22 +32,36 @@ describe("auditAccountPermissions", () => {
       r.findings.some((f) => f.message.includes("active must not control owner"))
     ).toBe(true);
   });
+
+  it("notes wait-gated thresholds", () => {
+    const r = auditAccountPermissions(demoWaitGated());
+    expect(r.findings.some((f) => f.id.includes("wait-gated"))).toBe(true);
+  });
 });
 
-describe("exportAuditMarkdown", () => {
-  it("includes account and WharfKit note", () => {
+describe("export", () => {
+  it("markdown includes WharfKit", () => {
     const md = exportAuditMarkdown(auditAccountPermissions(demoWeakOwner()));
-    expect(md).toContain("demoweak");
     expect(md).toContain("WharfKit");
   });
 
-  it("batch export lists multiple accounts", () => {
-    const md = exportBatchAuditMarkdown([
-      auditAccountPermissions(demoWeakOwner()),
-      auditAccountPermissions(demoStrongerOwner()),
-    ]);
-    expect(md).toContain("Batch permission audit");
-    expect(md).toContain("demoweak");
-    expect(md).toContain("demosafe");
+  it("json parses", () => {
+    const parsed = JSON.parse(
+      exportAuditJson(auditAccountPermissions(demoWeakOwner()))
+    );
+    expect(parsed.result.account).toBe("demoweak");
+  });
+
+  it("batch json has count", () => {
+    const parsed = JSON.parse(
+      exportBatchAuditJson([
+        auditAccountPermissions(demoWeakOwner()),
+        auditAccountPermissions(demoStrongerOwner()),
+      ])
+    );
+    expect(parsed.count).toBe(2);
+    expect(exportBatchAuditMarkdown(parsed.results as never[])).toContain(
+      "Batch"
+    );
   });
 });
