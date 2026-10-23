@@ -18,6 +18,7 @@ import {
   fetchAccountPermissionsSafe,
   fetchManyAccountPermissionsSafe,
 } from '../examples/live/chain';
+import { riskScoreLabel } from '../examples/severityLabel';
 import type { PermissionAuditResult } from '../examples/types';
 
 type Mode =
@@ -113,11 +114,11 @@ export default function PermissionAuditor() {
           PERMISSION AUDITOR
         </div>
         <div className="text-xs opacity-60 mb-2">
-          Pixel Journey · Pass 3 · educational-reference
+          Pixel Journey · Passes 1–4 frozen · educational-reference
         </div>
         <p className="text-xs opacity-50 mb-8 max-w-2xl">
-          Pure structure rules (incl. wait weights). Prefer WharfKit for authority
-          changes.
+          Structure rules only — linkauth targets are not fully visible via
+          get_account (see LINKAUTH.md). Prefer WharfKit for authority changes.
         </p>
 
         <div className="flex flex-wrap gap-2 mb-6">
@@ -259,7 +260,7 @@ export default function PermissionAuditor() {
                         : 'bg-emerald-500/20 text-emerald-400'
                   }`}
                 >
-                  Risk: {result.riskScore}
+                  Risk: {result.riskScore} ({riskScoreLabel(result.riskScore)})
                 </div>
               </div>
             </div>
@@ -303,7 +304,7 @@ export default function PermissionAuditor() {
                         r.riskScore > 60 ? 'text-red-400' : 'text-emerald-400'
                       }
                     >
-                      risk {r.riskScore}
+                      risk {r.riskScore} ({riskScoreLabel(r.riskScore)})
                     </span>
                   </div>
                   <p className="text-xs opacity-70 mb-2">{r.summary}</p>
