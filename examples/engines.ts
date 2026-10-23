@@ -54,8 +54,24 @@ export function auditPermissionLevel(p: PermissionLevel): AuditFinding[] {
       severity: "critical",
       permission: "owner",
       message: "Owner is a single key with threshold 1.",
-      recommendation: "Split owner across hardware / multi-sig before high value is held.",
+      recommendation:
+        "Split owner across hardware / multi-sig before high value is held.",
     });
+  }
+
+  if (p.name === "owner") {
+    for (const a of p.accounts) {
+      if (/@active$/i.test(a.actorPermission)) {
+        findings.push({
+          id: `owner-active-auth-${a.actorPermission}`,
+          severity: "critical",
+          permission: "owner",
+          message: `Owner includes ${a.actorPermission} — active must not control owner.`,
+          recommendation:
+            "Remove active-level authorities from owner; use owner keys or owner@owner multi-sig only.",
+        });
+      }
+    }
   }
 
   if (p.name === "active" && p.threshold === 1 && keys + accounts === 1) {
@@ -68,18 +84,21 @@ export function auditPermissionLevel(p: PermissionLevel): AuditFinding[] {
     });
   }
 
-  // Accounts linked into owner that could expand control surface
   if (p.name === "owner" && accounts > 0) {
     findings.push({
       id: "owner-account-auth",
       severity: "warn",
       permission: "owner",
-      message: "Owner includes account-based authorities — review linked accounts carefully.",
+      message:
+        "Owner includes account-based authorities — review linked accounts carefully.",
       recommendation: "Ensure linked accounts are as secure as owner keys.",
     });
   }
 
-  if (p.keys.some((k) => k.weight <= 0) || p.accounts.some((a) => a.weight <= 0)) {
+  if (
+    p.keys.some((k) => k.weight <= 0) ||
+    p.accounts.some((a) => a.weight <= 0)
+  ) {
     findings.push({
       id: `${p.name}-zero-weight`,
       severity: "info",
@@ -128,7 +147,6 @@ export function auditAccountPermissions(
     findings.push(...auditPermissionLevel(p));
   }
 
-  // Parent links: active should typically parent to owner
   const active = input.permissions.find((p) => p.name === "active");
   if (active && active.parent && active.parent !== "owner") {
     findings.push({
@@ -208,6 +226,31 @@ export function demoStrongerOwner(): AccountPermissions {
           { publicKey: "PUB_K1_c", weight: 1 },
         ],
         accounts: [],
+      },
+      {
+        name: "active",
+        parent: "owner",
+        threshold: 1,
+        keys: [{ publicKey: "PUB_K1_hot", weight: 1 }],
+        accounts: [],
+      },
+    ],
+  };
+}
+
+/** Intentional anti-pattern: active on owner */
+export function demoActiveControlsOwner(): AccountPermissions {
+  return {
+    account: "demoactiveowner",
+    permissions: [
+      {
+        name: "owner",
+        parent: "",
+        threshold: 1,
+        keys: [],
+        accounts: [
+          { actorPermission: "attacker@active", weight: 1 },
+        ],
       },
       {
         name: "active",
