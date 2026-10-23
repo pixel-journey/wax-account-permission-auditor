@@ -1,13 +1,18 @@
 # wax-account-permission-auditor
 
 > **Trust label:** `educational-reference`  
-> **Status:** Pass 1 deep refinement (PX Perfection)  
+> **Status:** Passes 1–4 frozen (PX Perfection)  
 > **Category:** Security / permission auditing  
 > **Parent Catalog:** [wax-ecosystem-blueprint-catalog](https://github.com/pixel-journey/wax-ecosystem-blueprint-catalog)
 
-**Goal:** Pure **rule-based audit** of Antelope-style permission structures — thresholds, single points of failure, unsatisfiable weights, owner/active hygiene — with actionable findings. Batch-friendly via `auditMany`.
+**Goal:** Pure **rule-based audit** of Antelope-style permission structures — thresholds, single points of failure, unsatisfiable weights, wait weights, owner/active hygiene — with actionable findings. Batch-friendly via `auditMany` / paced live batch.
 
-See [VERIFICATION-LOG.md](VERIFICATION-LOG.md).
+Docs:
+
+- [VERIFICATION-LOG.md](VERIFICATION-LOG.md)
+- [RISK-SCORING.md](RISK-SCORING.md) — how `riskScore` and `riskScoreLabel` work
+- [LINKAUTH.md](LINKAUTH.md) — what `get_account` cannot show
+- [REFINEMENT_COMPLETION_REPORT.md](REFINEMENT_COMPLETION_REPORT.md)
 
 ---
 
@@ -15,7 +20,9 @@ See [VERIFICATION-LOG.md](VERIFICATION-LOG.md).
 
 Rules run only on `AccountPermissions` structure in `examples/engines.ts` (no account-name hard-codes).
 
-This tool does **not** broadcast `updateauth`. Prefer **WharfKit** if you later implement proposals. Visual tree editing lives in [`wax-permission-visualizer-and-editor`](https://github.com/pixel-journey/wax-permission-visualizer-and-editor).
+This tool does **not** broadcast `updateauth` / `linkauth`. Prefer **WharfKit** if you later implement proposals. Visual tree editing lives in [`wax-permission-visualizer-and-editor`](https://github.com/pixel-journey/wax-permission-visualizer-and-editor).
+
+Score bands are **heuristic** (baseline 10 + 25/12/3 per finding severity). See RISK-SCORING.md.
 
 ---
 
@@ -23,6 +30,7 @@ This tool does **not** broadcast `updateauth`. Prefer **WharfKit** if you later 
 
 ```ts
 import { auditAccountPermissions } from "./examples/engines";
+import { riskScoreLabel } from "./examples/severityLabel";
 
 const result = auditAccountPermissions({
   account: "myaccount",
@@ -36,9 +44,13 @@ const result = auditAccountPermissions({
     },
   ],
 });
+
+console.log(result.riskScore, riskScoreLabel(result.riskScore));
+// e.g. 35 "moderate" for a single critical with no other findings
 ```
 
-Live: `fetchAccountPermissionsSafe` → map → audit.
+Live: `fetchAccountPermissionsSafe` → map → audit.  
+Batch: `fetchManyAccountPermissionsSafe` (default 200ms spacing).
 
 ```bash
 npm install && npm test && npm run dev
@@ -48,10 +60,21 @@ npm install && npm test && npm run dev
 
 ## Rules (examples)
 
-- Threshold > total weight → critical (unsatisfiable)
+- Threshold > total weight (keys + accounts + waits) → critical
 - Owner single key threshold 1 → critical SPF
+- `*@active` authority on owner → critical
 - Active single authority → warn
+- Wait-gated threshold → info
 - Zero-weight entries → info
+
+## Label bands (summary)
+
+| Score | Label |
+|------:|--------|
+| 0–34 | low |
+| 35–54 | moderate |
+| 55–74 | high |
+| ≥ 75 | critical |
 
 ---
 
