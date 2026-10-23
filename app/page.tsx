@@ -3,19 +3,30 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   auditAccountPermissions,
-  auditMany,
   demoActiveControlsOwner,
   demoStrongerOwner,
+  demoWaitGated,
   demoWeakOwner,
 } from '../examples/engines';
 import {
+  exportAuditJson,
   exportAuditMarkdown,
+  exportBatchAuditJson,
   exportBatchAuditMarkdown,
 } from '../examples/exportReport';
-import { fetchAccountPermissionsSafe } from '../examples/live/chain';
+import {
+  fetchAccountPermissionsSafe,
+  fetchManyAccountPermissionsSafe,
+} from '../examples/live/chain';
 import type { PermissionAuditResult } from '../examples/types';
 
-type Mode = 'live' | 'batch' | 'weak' | 'strong' | 'activeowner';
+type Mode =
+  | 'live'
+  | 'batch'
+  | 'weak'
+  | 'strong'
+  | 'activeowner'
+  | 'wait';
 
 export default function PermissionAuditor() {
   const [mode, setMode] = useState<Mode>('live');
@@ -37,15 +48,12 @@ export default function PermissionAuditor() {
     if (mode === 'strong') return auditAccountPermissions(demoStrongerOwner());
     if (mode === 'activeowner')
       return auditAccountPermissions(demoActiveControlsOwner());
+    if (mode === 'wait') return auditAccountPermissions(demoWaitGated());
     return null;
   }, [mode]);
 
   const result =
-    mode === 'live'
-      ? liveResult
-      : mode === 'batch'
-        ? null
-        : demoResult;
+    mode === 'live' ? liveResult : mode === 'batch' ? null : demoResult;
 
   const copy = async (text: string, ok: string) => {
     try {
@@ -83,22 +91,18 @@ export default function PermissionAuditor() {
     setLoading(true);
     setError(null);
     setBatchResults([]);
-    const out: PermissionAuditResult[] = [];
-    const fails: string[] = [];
-    for (const name of names) {
-      const r = await fetchAccountPermissionsSafe(name);
-      if (!r.ok) {
-        fails.push(`${name}: ${r.reason}`);
-        continue;
-      }
-      out.push(auditAccountPermissions(r.permissions));
-    }
+    const { ok, failed } = await fetchManyAccountPermissionsSafe(names, {
+      delayMs: 200,
+    });
+    const out = ok.map((x) => auditAccountPermissions(x.permissions));
     setBatchResults(out);
     setLoading(false);
     setMeta(
-      fails.length
-        ? `Audited ${out.length}; soft-fails: ${fails.join('; ')}`
-        : `Audited ${out.length} account(s)`
+      failed.length
+        ? `Audited ${out.length}; soft-fails: ${failed
+            .map((f) => `${f.account}: ${f.reason}`)
+            .join('; ')}`
+        : `Audited ${out.length} account(s) (200ms spacing)`
     );
   }, [batchText]);
 
@@ -109,19 +113,11 @@ export default function PermissionAuditor() {
           PERMISSION AUDITOR
         </div>
         <div className="text-xs opacity-60 mb-2">
-          Pixel Journey · Pass 2 · educational-reference
+          Pixel Journey · Pass 3 · educational-reference
         </div>
         <p className="text-xs opacity-50 mb-8 max-w-2xl">
-          Pure structure rules. Prefer WharfKit for authority changes. Companion:{' '}
-          <a
-            className="underline text-emerald-400"
-            href="https://github.com/pixel-journey/wax-permission-visualizer-and-editor"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            visualizer
-          </a>
-          .
+          Pure structure rules (incl. wait weights). Prefer WharfKit for authority
+          changes.
         </p>
 
         <div className="flex flex-wrap gap-2 mb-6">
@@ -132,6 +128,7 @@ export default function PermissionAuditor() {
               ['weak', 'Weak owner'],
               ['strong', 'Multi-key'],
               ['activeowner', 'Active on owner'],
+              ['wait', 'Wait-gated'],
             ] as const
           ).map(([m, label]) => (
             <button
@@ -185,18 +182,32 @@ export default function PermissionAuditor() {
                 {loading ? 'Auditing…' : 'Audit batch'}
               </button>
               {batchResults.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    copy(
-                      exportBatchAuditMarkdown(batchResults),
-                      'Batch report copied'
-                    )
-                  }
-                  className="px-4 py-3 rounded-xl bg-emerald-800 text-sm"
-                >
-                  Copy batch MD
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      copy(
+                        exportBatchAuditMarkdown(batchResults),
+                        'Batch MD copied'
+                      )
+                    }
+                    className="px-4 py-3 rounded-xl bg-emerald-800 text-sm"
+                  >
+                    Copy batch MD
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      copy(
+                        exportBatchAuditJson(batchResults),
+                        'Batch JSON copied'
+                      )
+                    }
+                    className="px-4 py-3 rounded-xl bg-emerald-900 text-sm"
+                  >
+                    Copy batch JSON
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -224,11 +235,20 @@ export default function PermissionAuditor() {
                 <button
                   type="button"
                   onClick={() =>
-                    copy(exportAuditMarkdown(result), 'Audit report copied')
+                    copy(exportAuditMarkdown(result), 'Audit MD copied')
                   }
                   className="px-3 py-1 text-xs rounded-lg bg-emerald-900"
                 >
                   Copy MD
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    copy(exportAuditJson(result), 'Audit JSON copied')
+                  }
+                  className="px-3 py-1 text-xs rounded-lg bg-sky-900"
+                >
+                  Copy JSON
                 </button>
                 <div
                   className={`px-4 py-1 rounded-full text-sm ${
