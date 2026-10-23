@@ -1,14 +1,14 @@
 # Verification Log
 
 **Trust label:** educational-reference  
-**Updated:** 2026-10-23 (Pass 2)
+**Updated:** 2026-10-23 (Pass 3)
 
 | Claim | Status | Evidence |
 |-------|--------|----------|
-| Pure audit rules | **verified** (unit) | engines.test.ts |
-| active must not control owner | **verified** (unit) | demoActiveControlsOwner |
-| Markdown export | **verified** (unit) | exportReport tests |
-| Soft-fail / batch live | code present | CORS/offline may fail |
+| Core audit + active-on-owner | **verified** (unit) | engines.test.ts |
+| Wait-gated finding | **verified** (unit) | demoWaitGated |
+| MD + JSON export | **verified** (unit) | export tests |
+| Delayed batch fetch | code present | fetchManyAccountPermissionsSafe |
 | Authority mutation | **not claimed** | |
 
 ```bash
