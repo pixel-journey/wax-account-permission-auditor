@@ -9,10 +9,18 @@ import type {
   PermissionLevel,
 } from "./types";
 
-function totalWeight(p: PermissionLevel): number {
+function keyAccountWeight(p: PermissionLevel): number {
   const k = p.keys.reduce((s, x) => s + x.weight, 0);
   const a = p.accounts.reduce((s, x) => s + x.weight, 0);
   return k + a;
+}
+
+function waitWeight(p: PermissionLevel): number {
+  return (p.waits ?? []).reduce((s, w) => s + w.weight, 0);
+}
+
+function totalWeight(p: PermissionLevel): number {
+  return keyAccountWeight(p) + waitWeight(p);
 }
 
 function uniqueKeyCount(p: PermissionLevel): number {
@@ -21,6 +29,8 @@ function uniqueKeyCount(p: PermissionLevel): number {
 
 export function auditPermissionLevel(p: PermissionLevel): AuditFinding[] {
   const findings: AuditFinding[] = [];
+  const immediate = keyAccountWeight(p);
+  const waits = waitWeight(p);
   const weight = totalWeight(p);
   const keys = uniqueKeyCount(p);
   const accounts = p.accounts.length;
@@ -30,12 +40,31 @@ export function auditPermissionLevel(p: PermissionLevel): AuditFinding[] {
       id: `${p.name}-unreachable`,
       severity: "critical",
       permission: p.name,
-      message: `Threshold ${p.threshold} exceeds total weight ${weight} — permission may be unsatisfiable.`,
-      recommendation: "Lower threshold or add keys/accounts with enough weight.",
+      message: `Threshold ${p.threshold} exceeds total weight ${weight} (keys/accounts + waits) — may be unsatisfiable.`,
+      recommendation: "Lower threshold or add keys/accounts/waits with enough weight.",
+    });
+  } else if (immediate < p.threshold && waits > 0) {
+    findings.push({
+      id: `${p.name}-wait-gated`,
+      severity: "info",
+      permission: p.name,
+      message: `Threshold ${p.threshold} needs wait weight (immediate ${immediate}, waits ${waits}).`,
+      recommendation:
+        "Confirm time-delay authorities are intentional for recovery or multi-sig.",
     });
   }
 
-  if (p.threshold <= 1 && keys + accounts <= 1) {
+  if ((p.waits ?? []).some((w) => w.waitSec <= 0 || w.weight <= 0)) {
+    findings.push({
+      id: `${p.name}-odd-wait`,
+      severity: "info",
+      permission: p.name,
+      message: "Wait entry with zero seconds or zero weight.",
+      recommendation: "Clean up wait table entries.",
+    });
+  }
+
+  if (p.threshold <= 1 && keys + accounts <= 1 && waits === 0) {
     findings.push({
       id: `${p.name}-spf`,
       severity: p.name === "owner" ? "critical" : "warn",
@@ -48,7 +77,7 @@ export function auditPermissionLevel(p: PermissionLevel): AuditFinding[] {
     });
   }
 
-  if (p.name === "owner" && p.threshold === 1 && keys === 1) {
+  if (p.name === "owner" && p.threshold === 1 && keys === 1 && accounts === 0) {
     findings.push({
       id: "owner-single-key",
       severity: "critical",
@@ -188,7 +217,6 @@ export function auditMany(
   return accounts.map(auditAccountPermissions);
 }
 
-/** Weak owner demo */
 export function demoWeakOwner(): AccountPermissions {
   return {
     account: "demoweak",
@@ -211,7 +239,6 @@ export function demoWeakOwner(): AccountPermissions {
   };
 }
 
-/** Stronger multi-key owner demo */
 export function demoStrongerOwner(): AccountPermissions {
   return {
     account: "demosafe",
@@ -238,7 +265,6 @@ export function demoStrongerOwner(): AccountPermissions {
   };
 }
 
-/** Intentional anti-pattern: active on owner */
 export function demoActiveControlsOwner(): AccountPermissions {
   return {
     account: "demoactiveowner",
@@ -248,9 +274,31 @@ export function demoActiveControlsOwner(): AccountPermissions {
         parent: "",
         threshold: 1,
         keys: [],
-        accounts: [
-          { actorPermission: "attacker@active", weight: 1 },
-        ],
+        accounts: [{ actorPermission: "attacker@active", weight: 1 }],
+      },
+      {
+        name: "active",
+        parent: "owner",
+        threshold: 1,
+        keys: [{ publicKey: "PUB_K1_hot", weight: 1 }],
+        accounts: [],
+      },
+    ],
+  };
+}
+
+/** Threshold only met with time-delay wait weight */
+export function demoWaitGated(): AccountPermissions {
+  return {
+    account: "demowait",
+    permissions: [
+      {
+        name: "owner",
+        parent: "",
+        threshold: 2,
+        keys: [{ publicKey: "PUB_K1_a", weight: 1 }],
+        accounts: [],
+        waits: [{ waitSec: 86400, weight: 1 }],
       },
       {
         name: "active",
