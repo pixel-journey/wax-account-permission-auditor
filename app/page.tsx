@@ -231,12 +231,23 @@ export default function PermissionAuditor() {
           PERMISSION AUDITOR
         </div>
         <div className="text-xs opacity-60 mb-2">
-          Pixel Journey · Pass 9 · educational-reference
+          Pixel Journey · Passes 1–10 frozen · educational-reference
         </div>
         <p className="text-xs opacity-50 mb-6 max-w-2xl">
-          Structure rules only. Compare two accounts side-by-side. Batch risk
-          histogram after scans.
+          Structure rules only. Compare two accounts · batch histogram · CSV.
+          No auto <code>updateauth</code>. Prefer WharfKit for authority changes.
         </p>
+
+        <section
+          className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-100/90 space-y-1 max-w-2xl mb-6"
+          role="note"
+        >
+          <p className="font-medium text-sm">Scope frozen (Pass 10)</p>
+          <p>
+            Same-account <code>@active</code> on owner is critical; foreign helpers are
+            social recovery. See POLICY.md.
+          </p>
+        </section>
 
         <section
           className="rounded-2xl border border-fuchsia-500/25 bg-fuchsia-500/5 p-4 text-xs space-y-3 max-w-2xl mb-6"
