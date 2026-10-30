@@ -1,5 +1,6 @@
 /**
- * Pure permission risk rules — no account-name hard-codes.
+ * Pure permission risk rules — no account-name hard-codes (except comparing
+ * this account's active on its own owner).
  */
 
 import type {
@@ -27,7 +28,17 @@ function uniqueKeyCount(p: PermissionLevel): number {
   return new Set(p.keys.map((k) => k.publicKey)).size;
 }
 
-export function auditPermissionLevel(p: PermissionLevel): AuditFinding[] {
+/** Parse "actor@permission" tags. */
+function parseActorPerm(tag: string): { actor: string; permission: string } {
+  const i = tag.lastIndexOf("@");
+  if (i <= 0) return { actor: tag, permission: "" };
+  return { actor: tag.slice(0, i), permission: tag.slice(i + 1) };
+}
+
+export function auditPermissionLevel(
+  p: PermissionLevel,
+  accountName?: string
+): AuditFinding[] {
   const findings: AuditFinding[] = [];
   const immediate = keyAccountWeight(p);
   const waits = waitWeight(p);
@@ -90,14 +101,38 @@ export function auditPermissionLevel(p: PermissionLevel): AuditFinding[] {
 
   if (p.name === "owner") {
     for (const a of p.accounts) {
-      if (/@active$/i.test(a.actorPermission)) {
+      const { actor, permission } = parseActorPerm(a.actorPermission);
+      const isActive = /^active$/i.test(permission);
+      if (!isActive) continue;
+
+      // Only *this* account's active on its owner is the classic anti-pattern.
+      if (accountName && actor === accountName) {
         findings.push({
-          id: `owner-active-auth-${a.actorPermission}`,
+          id: `owner-self-active-auth`,
           severity: "critical",
           permission: "owner",
-          message: `Owner includes ${a.actorPermission} — active must not control owner.`,
+          message: `Owner includes ${accountName}@active — this account's active must not control its own owner.`,
           recommendation:
-            "Remove active-level authorities from owner; use owner keys or owner@owner multi-sig only.",
+            "Remove self@active from owner; use owner keys or external multi-party weights.",
+        });
+      } else if (!accountName) {
+        // Without account context, flag any @active as warn (legacy callers).
+        findings.push({
+          id: `owner-active-auth-${a.actorPermission}`,
+          severity: "warn",
+          permission: "owner",
+          message: `Owner includes ${a.actorPermission}. If this is *this* account@active, it is critical; foreign helpers are normal social recovery.`,
+          recommendation:
+            "Verify actor is not the audited account. Foreign @active weights are intentional multi-party design.",
+        });
+      } else {
+        findings.push({
+          id: `owner-foreign-active-${a.actorPermission}`,
+          severity: "info",
+          permission: "owner",
+          message: `Owner includes foreign ${a.actorPermission} (social / multi-party weight).`,
+          recommendation:
+            "Document helpers offline (social-recovery blueprint). Ensure helper accounts are secure.",
         });
       }
     }
@@ -113,7 +148,17 @@ export function auditPermissionLevel(p: PermissionLevel): AuditFinding[] {
     });
   }
 
-  if (p.name === "owner" && accounts > 0) {
+  if (p.name === "owner" && accounts >= 2 && p.threshold >= 2) {
+    findings.push({
+      id: "owner-multiparty",
+      severity: "info",
+      permission: "owner",
+      message:
+        "Owner uses multi-party account authorities — good structure if helpers are trusted.",
+      recommendation:
+        "Pair with offline runbooks (wax-social-recovery-and-key-backup-tools).",
+    });
+  } else if (p.name === "owner" && accounts > 0 && accounts < 2) {
     findings.push({
       id: "owner-account-auth",
       severity: "warn",
@@ -173,7 +218,7 @@ export function auditAccountPermissions(
   }
 
   for (const p of input.permissions) {
-    findings.push(...auditPermissionLevel(p));
+    findings.push(...auditPermissionLevel(p, input.account));
   }
 
   const active = input.permissions.find((p) => p.name === "active");
@@ -265,16 +310,17 @@ export function demoStrongerOwner(): AccountPermissions {
   };
 }
 
-export function demoActiveControlsOwner(): AccountPermissions {
+/** Same account's active on owner — critical anti-pattern. */
+export function demoSelfActiveOnOwner(): AccountPermissions {
   return {
-    account: "demoactiveowner",
+    account: "alice.wam",
     permissions: [
       {
         name: "owner",
         parent: "",
         threshold: 1,
         keys: [],
-        accounts: [{ actorPermission: "attacker@active", weight: 1 }],
+        accounts: [{ actorPermission: "alice.wam@active", weight: 1 }],
       },
       {
         name: "active",
@@ -285,6 +331,37 @@ export function demoActiveControlsOwner(): AccountPermissions {
       },
     ],
   };
+}
+
+/** Foreign helpers on owner — social recovery style (not critical). */
+export function demoSocialOwner(): AccountPermissions {
+  return {
+    account: "alice.wam",
+    permissions: [
+      {
+        name: "owner",
+        parent: "",
+        threshold: 2,
+        keys: [{ publicKey: "PUB_K1_self", weight: 1 }],
+        accounts: [
+          { actorPermission: "bob.wam@active", weight: 1 },
+          { actorPermission: "carol.wam@active", weight: 1 },
+        ],
+      },
+      {
+        name: "active",
+        parent: "owner",
+        threshold: 1,
+        keys: [{ publicKey: "PUB_K1_hot", weight: 1 }],
+        accounts: [],
+      },
+    ],
+  };
+}
+
+/** @deprecated alias — foreign active is no longer auto-critical */
+export function demoActiveControlsOwner(): AccountPermissions {
+  return demoSelfActiveOnOwner();
 }
 
 /** Threshold only met with time-delay wait weight */

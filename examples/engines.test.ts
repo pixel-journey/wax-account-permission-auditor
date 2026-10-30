@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   auditAccountPermissions,
-  demoActiveControlsOwner,
+  demoSelfActiveOnOwner,
+  demoSocialOwner,
   demoStrongerOwner,
   demoWaitGated,
   demoWeakOwner,
@@ -26,11 +27,26 @@ describe("auditAccountPermissions", () => {
     expect(r.findings.some((f) => f.id === "empty")).toBe(true);
   });
 
-  it("flags active controlling owner", () => {
-    const r = auditAccountPermissions(demoActiveControlsOwner());
+  it("flags same-account active on owner as critical", () => {
+    const r = auditAccountPermissions(demoSelfActiveOnOwner());
     expect(
-      r.findings.some((f) => f.message.includes("active must not control owner"))
+      r.findings.some(
+        (f) =>
+          f.severity === "critical" &&
+          f.message.includes("must not control its own owner")
+      )
     ).toBe(true);
+  });
+
+  it("does not critical-flag foreign helpers on owner", () => {
+    const r = auditAccountPermissions(demoSocialOwner());
+    expect(
+      r.findings.some(
+        (f) =>
+          f.severity === "critical" && f.message.includes("must not control")
+      )
+    ).toBe(false);
+    expect(r.findings.some((f) => f.id === "owner-multiparty")).toBe(true);
   });
 
   it("notes wait-gated thresholds", () => {
