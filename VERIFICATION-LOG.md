@@ -1,9 +1,9 @@
 # Verification Log
 
-**Updated:** 2026-10-30 (Pass 7)
+**Updated:** 2026-10-30 (Pass 8)
 
 | Claim | Status |
 | --- | --- |
-| CSV summary/findings | unit |
-| Batch filter/sort | UI |
+| shareUrl | unit |
+| batch localStorage | UI |
 | Live updateauth | out of scope |

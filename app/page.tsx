@@ -1,7 +1,12 @@
 'use client';
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { RelatedBlueprints } from '../examples/RelatedBlueprints';
+import {
+  clearBatchText,
+  loadBatchText,
+  saveBatchText,
+} from '../examples/batchStorage';
 import {
   auditAccountPermissions,
   demoSelfActiveOnOwner,
@@ -26,6 +31,10 @@ import {
 import { AUDITOR_MYTHS } from '../examples/myths';
 import { DEFAULT_RPC_URL, RPC_ENDPOINTS } from '../examples/rpcEndpoints';
 import { riskScoreLabel } from '../examples/severityLabel';
+import {
+  buildAccountShareParam,
+  readAccountFromSearch,
+} from '../examples/shareUrl';
 import type { PermissionAuditResult } from '../examples/types';
 
 type Mode =
@@ -57,6 +66,20 @@ export default function PermissionAuditor() {
   const [meta, setMeta] = useState<string | null>(null);
   const [sevFilter, setSevFilter] = useState<SeverityFilter>('all');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const shared = readAccountFromSearch(window.location.search);
+    if (shared) {
+      setAccount(shared);
+      setMode('live');
+      setStatus(`Account from share URL: ${shared}`);
+      window.history.replaceState({}, '', window.location.pathname);
+      return;
+    }
+    const d = loadBatchText();
+    if (d.ok) setBatchText(d.value);
+  }, []);
 
   const demoResult = useMemo(() => {
     if (mode === 'weak') return auditAccountPermissions(demoWeakOwner());
@@ -91,6 +114,15 @@ export default function PermissionAuditor() {
     } catch {
       setStatus('Clipboard unavailable');
     }
+  };
+
+  const copyShare = async () => {
+    const param = buildAccountShareParam(account);
+    const url =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}${window.location.pathname}?${param}`
+        : `?${param}`;
+    await copy(url, 'Share URL copied');
   };
 
   const runLive = useCallback(async () => {
@@ -143,11 +175,11 @@ export default function PermissionAuditor() {
           PERMISSION AUDITOR
         </div>
         <div className="text-xs opacity-60 mb-2">
-          Pixel Journey · Pass 7 · educational-reference
+          Pixel Journey · Pass 8 · educational-reference
         </div>
         <p className="text-xs opacity-50 mb-6 max-w-2xl">
-          Structure rules only. Batch CSV + severity filter for multi-account
-          scans. Prefer WharfKit for authority changes.
+          Structure rules only. Share live audits with <code>?a=account</code>.
+          Batch lists save to localStorage. Prefer WharfKit for authority changes.
         </p>
 
         <section
@@ -192,6 +224,13 @@ export default function PermissionAuditor() {
               {label}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => void copyShare()}
+            className="px-4 py-2 rounded-xl text-sm bg-teal-800"
+          >
+            Copy share URL
+          </button>
         </div>
 
         {(mode === 'live' || mode === 'batch') && (
@@ -247,6 +286,26 @@ export default function PermissionAuditor() {
                 className="px-6 py-3 rounded-xl bg-sky-600 text-sm disabled:opacity-50"
               >
                 {loading ? 'Auditing…' : 'Audit batch'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const r = saveBatchText(batchText);
+                  setStatus(r.ok ? 'Batch list saved' : `Save failed: ${r.reason}`);
+                }}
+                className="px-4 py-3 rounded-xl bg-violet-800 text-sm"
+              >
+                Save list
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  clearBatchText();
+                  setStatus('Batch list cleared from storage');
+                }}
+                className="px-4 py-3 rounded-xl bg-white/10 text-sm"
+              >
+                Clear saved list
               </button>
               {batchResults.length > 0 && (
                 <>
