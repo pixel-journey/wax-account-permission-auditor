@@ -8,6 +8,11 @@ import {
   saveBatchText,
 } from '../examples/batchStorage';
 import {
+  compareAuditResults,
+  exportCompareMarkdown,
+  riskHistogram,
+} from '../examples/compare';
+import {
   auditAccountPermissions,
   demoSelfActiveOnOwner,
   demoSocialOwner,
@@ -40,6 +45,7 @@ import type { PermissionAuditResult } from '../examples/types';
 type Mode =
   | 'live'
   | 'batch'
+  | 'compare'
   | 'weak'
   | 'strong'
   | 'selfactive'
@@ -52,6 +58,7 @@ type SortDir = 'desc' | 'asc';
 export default function PermissionAuditor() {
   const [mode, setMode] = useState<Mode>('live');
   const [account, setAccount] = useState('eosio');
+  const [accountB, setAccountB] = useState('atomicassets');
   const [rpcUrl, setRpcUrl] = useState(DEFAULT_RPC_URL);
   const [batchText, setBatchText] = useState('eosio\natomicassets');
   const [loading, setLoading] = useState(false);
@@ -60,6 +67,8 @@ export default function PermissionAuditor() {
   const [liveResult, setLiveResult] = useState<PermissionAuditResult | null>(
     null
   );
+  const [compareA, setCompareA] = useState<PermissionAuditResult | null>(null);
+  const [compareB, setCompareB] = useState<PermissionAuditResult | null>(null);
   const [batchResults, setBatchResults] = useState<PermissionAuditResult[]>(
     []
   );
@@ -92,7 +101,11 @@ export default function PermissionAuditor() {
   }, [mode]);
 
   const result =
-    mode === 'live' ? liveResult : mode === 'batch' ? null : demoResult;
+    mode === 'live'
+      ? liveResult
+      : mode === 'batch' || mode === 'compare'
+        ? null
+        : demoResult;
 
   const filteredBatch = useMemo(() => {
     let list = [...batchResults];
@@ -106,6 +119,14 @@ export default function PermissionAuditor() {
     );
     return list;
   }, [batchResults, sevFilter, sortDir]);
+
+  const hist = useMemo(
+    () => (batchResults.length ? riskHistogram(batchResults) : null),
+    [batchResults]
+  );
+
+  const cmp =
+    compareA && compareB ? compareAuditResults(compareA, compareB) : null;
 
   const copy = async (text: string, ok: string) => {
     try {
@@ -140,6 +161,27 @@ export default function PermissionAuditor() {
     setMeta(`get_account · ${r.source}`);
   }, [account, rpcUrl]);
 
+  const runCompare = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setCompareA(null);
+    setCompareB(null);
+    const [ra, rb] = await Promise.all([
+      fetchAccountPermissionsSafe(account, { rpcBase: rpcUrl }),
+      fetchAccountPermissionsSafe(accountB, { rpcBase: rpcUrl }),
+    ]);
+    setLoading(false);
+    if (!ra.ok || !rb.ok) {
+      setError(
+        `Soft-fail: ${!ra.ok ? `${account}: ${ra.reason}` : ''} ${!rb.ok ? `${accountB}: ${rb.reason}` : ''}`
+      );
+      return;
+    }
+    setCompareA(auditAccountPermissions(ra.permissions));
+    setCompareB(auditAccountPermissions(rb.permissions));
+    setMeta(`Compared via ${new URL(rpcUrl).hostname}`);
+  }, [account, accountB, rpcUrl]);
+
   const runBatch = useCallback(async () => {
     const names = batchText
       .split(/[\n,]+/)
@@ -168,6 +210,20 @@ export default function PermissionAuditor() {
     );
   }, [batchText, rpcUrl]);
 
+  const bar = (n: number, total: number) => {
+    const pct = total ? Math.round((n / total) * 100) : 0;
+    return (
+      <div className="flex items-center gap-2 text-xs font-mono">
+        <div className="w-24 h-2 bg-white/10 rounded overflow-hidden">
+          <div className="h-full bg-emerald-500/70" style={{ width: `${pct}%` }} />
+        </div>
+        <span>
+          {n} ({pct}%)
+        </span>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white p-8">
       <div className="max-w-5xl mx-auto">
@@ -175,11 +231,11 @@ export default function PermissionAuditor() {
           PERMISSION AUDITOR
         </div>
         <div className="text-xs opacity-60 mb-2">
-          Pixel Journey · Pass 8 · educational-reference
+          Pixel Journey · Pass 9 · educational-reference
         </div>
         <p className="text-xs opacity-50 mb-6 max-w-2xl">
-          Structure rules only. Share live audits with <code>?a=account</code>.
-          Batch lists save to localStorage. Prefer WharfKit for authority changes.
+          Structure rules only. Compare two accounts side-by-side. Batch risk
+          histogram after scans.
         </p>
 
         <section
@@ -206,6 +262,7 @@ export default function PermissionAuditor() {
             [
               ['live', 'Live'],
               ['batch', 'Batch'],
+              ['compare', 'Compare'],
               ['weak', 'Weak owner'],
               ['strong', 'Multi-key'],
               ['selfactive', 'Self@active on owner'],
@@ -233,7 +290,7 @@ export default function PermissionAuditor() {
           </button>
         </div>
 
-        {(mode === 'live' || mode === 'batch') && (
+        {(mode === 'live' || mode === 'batch' || mode === 'compare') && (
           <label className="flex items-center gap-2 text-xs opacity-80 mb-3">
             RPC
             <select
@@ -266,6 +323,67 @@ export default function PermissionAuditor() {
             >
               {loading ? 'Fetching…' : 'Audit live'}
             </button>
+          </div>
+        )}
+
+        {mode === 'compare' && (
+          <div className="border border-white/10 bg-black/40 p-4 rounded-2xl mb-6 space-y-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                value={account}
+                onChange={(e) => setAccount(e.target.value)}
+                className="flex-1 bg-black/60 border border-white/10 px-4 py-3 rounded-xl font-mono text-sm"
+                placeholder="Account A"
+              />
+              <input
+                value={accountB}
+                onChange={(e) => setAccountB(e.target.value)}
+                className="flex-1 bg-black/60 border border-white/10 px-4 py-3 rounded-xl font-mono text-sm"
+                placeholder="Account B"
+              />
+              <button
+                type="button"
+                onClick={runCompare}
+                disabled={loading}
+                className="px-6 py-3 rounded-xl bg-sky-600 text-sm disabled:opacity-50"
+              >
+                {loading ? 'Comparing…' : 'Compare'}
+              </button>
+            </div>
+            {cmp && compareA && compareB && (
+              <div className="text-sm space-y-3">
+                <div className="grid grid-cols-2 gap-4 font-mono">
+                  <div>
+                    <div className="opacity-60 text-xs">{cmp.accountA}</div>
+                    <div className="text-lg">
+                      {cmp.scoreA} ({cmp.labelA})
+                    </div>
+                  </div>
+                  <div>
+                    <div className="opacity-60 text-xs">{cmp.accountB}</div>
+                    <div className="text-lg">
+                      {cmp.scoreB} ({cmp.labelB})
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs opacity-70">
+                  Delta A−B: {cmp.delta} · Higher risk:{' '}
+                  <span className="text-amber-300">{cmp.higherRisk}</span>
+                </p>
+                <button
+                  type="button"
+                  className="px-3 py-2 text-xs rounded-lg bg-emerald-900"
+                  onClick={() =>
+                    copy(
+                      exportCompareMarkdown(compareA, compareB),
+                      'Compare MD copied'
+                    )
+                  }
+                >
+                  Copy compare MD
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -364,6 +482,15 @@ export default function PermissionAuditor() {
                 </>
               )}
             </div>
+            {hist && (
+              <div className="text-xs space-y-1 border-t border-white/10 pt-3">
+                <p className="opacity-60 mb-1">RISK HISTOGRAM ({batchResults.length})</p>
+                <div>low {bar(hist.low, batchResults.length)}</div>
+                <div>moderate {bar(hist.moderate, batchResults.length)}</div>
+                <div>high {bar(hist.high, batchResults.length)}</div>
+                <div>critical {bar(hist.critical, batchResults.length)}</div>
+              </div>
+            )}
             {batchResults.length > 0 && (
               <div className="flex flex-wrap gap-3 text-xs items-center pt-2 border-t border-white/10">
                 <label className="flex items-center gap-2">

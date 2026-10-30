@@ -1,14 +1,16 @@
 # wax-account-permission-auditor
 
 > **Trust label:** `educational-reference`  
-> **Status:** Passes **1–8** (2026-10-30)
+> **Status:** Passes **1–9** (2026-10-30)
 
 Batch-friendly **rule audit** of Antelope permission structures.
 
-**Pass 8:** Batch list **localStorage** · share `?a=` · [POLICY.md](./POLICY.md).
+**Pass 9:** Dual-account **compare** · batch **risk histogram** · compare MD export.
 
 ```bash
 npm install && npm test && npm run dev
 ```
+
+[POLICY.md](./POLICY.md) · [EDUCATION.md](./EDUCATION.md)
 
 MIT — Pixel Journey

@@ -1,9 +1,9 @@
-# Through Pass 8
+# Through Pass 9
 
 | Pass | Scope |
 |------|--------|
-| 7 | CSV, filter/sort |
-| **8** | Batch storage, share URL, POLICY |
+| 8 | Storage, share, POLICY |
+| **9** | Compare mode, histogram |
 
 ```bash
 npm install && npm test
