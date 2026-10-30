@@ -90,3 +90,85 @@ export function exportBatchAuditJson(
     2
   );
 }
+
+function csvEscape(s: string): string {
+  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+/** One row per account — summary batch table. */
+export function exportBatchAuditCsv(results: PermissionAuditResult[]): string {
+  const sorted = [...results].sort((a, b) => b.riskScore - a.riskScore);
+  const header = [
+    "account",
+    "riskScore",
+    "riskLabel",
+    "critical",
+    "warn",
+    "info",
+    "summary",
+  ].join(",");
+  const rows = sorted.map((r) => {
+    const critical = r.findings.filter((f) => f.severity === "critical").length;
+    const warn = r.findings.filter((f) => f.severity === "warn").length;
+    const info = r.findings.filter((f) => f.severity === "info").length;
+    return [
+      csvEscape(r.account),
+      String(r.riskScore),
+      riskScoreLabel(r.riskScore),
+      String(critical),
+      String(warn),
+      String(info),
+      csvEscape(r.summary),
+    ].join(",");
+  });
+  return [header, ...rows].join("\n") + "\n";
+}
+
+/** One row per finding — detail sheet. */
+export function exportBatchFindingsCsv(
+  results: PermissionAuditResult[]
+): string {
+  const sorted = [...results].sort((a, b) => b.riskScore - a.riskScore);
+  const header = [
+    "account",
+    "riskScore",
+    "findingId",
+    "severity",
+    "permission",
+    "message",
+    "recommendation",
+  ].join(",");
+  const rows: string[] = [];
+  for (const r of sorted) {
+    for (const f of r.findings) {
+      rows.push(
+        [
+          csvEscape(r.account),
+          String(r.riskScore),
+          csvEscape(f.id),
+          f.severity,
+          csvEscape(f.permission ?? ""),
+          csvEscape(f.message),
+          csvEscape(f.recommendation),
+        ].join(",")
+      );
+    }
+  }
+  return [header, ...rows].join("\n") + "\n";
+}
+
+export function downloadTextFile(
+  filename: string,
+  content: string,
+  mime = "text/plain;charset=utf-8"
+): void {
+  if (typeof document === "undefined") return;
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}

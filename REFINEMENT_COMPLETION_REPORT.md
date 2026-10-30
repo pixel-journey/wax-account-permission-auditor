@@ -1,9 +1,9 @@
-# Through Pass 6
+# Through Pass 7
 
 | Pass | Scope |
 |------|--------|
-| 5 | Same-account active-on-owner rule |
-| **6** | RPC chooser, social UI demos, myths, related links |
+| 6 | RPC, social demos, myths |
+| **7** | CSV exports, batch filter/sort |
 
 ```bash
 npm install && npm test

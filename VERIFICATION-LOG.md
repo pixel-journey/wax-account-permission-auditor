@@ -1,9 +1,9 @@
 # Verification Log
 
-**Updated:** 2026-10-30 (Pass 6)
+**Updated:** 2026-10-30 (Pass 7)
 
 | Claim | Status |
 | --- | --- |
-| Rule alignment (Pass 5) | unit |
-| Multi-RPC live/batch | UI wired |
+| CSV summary/findings | unit |
+| Batch filter/sort | UI |
 | Live updateauth | out of scope |

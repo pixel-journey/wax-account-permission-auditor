@@ -11,10 +11,13 @@ import {
   demoWeakOwner,
 } from '../examples/engines';
 import {
+  downloadTextFile,
   exportAuditJson,
   exportAuditMarkdown,
+  exportBatchAuditCsv,
   exportBatchAuditJson,
   exportBatchAuditMarkdown,
+  exportBatchFindingsCsv,
 } from '../examples/exportReport';
 import {
   fetchAccountPermissionsSafe,
@@ -34,6 +37,9 @@ type Mode =
   | 'social'
   | 'wait';
 
+type SeverityFilter = 'all' | 'critical' | 'warn' | 'info';
+type SortDir = 'desc' | 'asc';
+
 export default function PermissionAuditor() {
   const [mode, setMode] = useState<Mode>('live');
   const [account, setAccount] = useState('eosio');
@@ -49,6 +55,8 @@ export default function PermissionAuditor() {
     []
   );
   const [meta, setMeta] = useState<string | null>(null);
+  const [sevFilter, setSevFilter] = useState<SeverityFilter>('all');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
 
   const demoResult = useMemo(() => {
     if (mode === 'weak') return auditAccountPermissions(demoWeakOwner());
@@ -62,6 +70,19 @@ export default function PermissionAuditor() {
 
   const result =
     mode === 'live' ? liveResult : mode === 'batch' ? null : demoResult;
+
+  const filteredBatch = useMemo(() => {
+    let list = [...batchResults];
+    if (sevFilter !== 'all') {
+      list = list.filter((r) =>
+        r.findings.some((f) => f.severity === sevFilter)
+      );
+    }
+    list.sort((a, b) =>
+      sortDir === 'desc' ? b.riskScore - a.riskScore : a.riskScore - b.riskScore
+    );
+    return list;
+  }, [batchResults, sevFilter, sortDir]);
 
   const copy = async (text: string, ok: string) => {
     try {
@@ -122,12 +143,11 @@ export default function PermissionAuditor() {
           PERMISSION AUDITOR
         </div>
         <div className="text-xs opacity-60 mb-2">
-          Pixel Journey · Pass 6 · educational-reference
+          Pixel Journey · Pass 7 · educational-reference
         </div>
         <p className="text-xs opacity-50 mb-6 max-w-2xl">
-          Structure rules only. Same-account <code>@active</code> on owner is
-          critical; foreign helpers are social recovery (info). Prefer WharfKit
-          for authority changes.
+          Structure rules only. Batch CSV + severity filter for multi-account
+          scans. Prefer WharfKit for authority changes.
         </p>
 
         <section
@@ -254,9 +274,70 @@ export default function PermissionAuditor() {
                   >
                     Copy batch JSON
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      downloadTextFile(
+                        'batch-audit-summary.csv',
+                        exportBatchAuditCsv(batchResults),
+                        'text/csv;charset=utf-8'
+                      );
+                      setStatus('Summary CSV downloaded');
+                    }}
+                    className="px-4 py-3 rounded-xl bg-teal-900 text-sm"
+                  >
+                    Download summary CSV
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      downloadTextFile(
+                        'batch-audit-findings.csv',
+                        exportBatchFindingsCsv(batchResults),
+                        'text/csv;charset=utf-8'
+                      );
+                      setStatus('Findings CSV downloaded');
+                    }}
+                    className="px-4 py-3 rounded-xl bg-teal-950 text-sm"
+                  >
+                    Download findings CSV
+                  </button>
                 </>
               )}
             </div>
+            {batchResults.length > 0 && (
+              <div className="flex flex-wrap gap-3 text-xs items-center pt-2 border-t border-white/10">
+                <label className="flex items-center gap-2">
+                  Filter
+                  <select
+                    value={sevFilter}
+                    onChange={(e) =>
+                      setSevFilter(e.target.value as SeverityFilter)
+                    }
+                    className="bg-black/60 border border-white/10 px-2 py-1 rounded-lg font-mono"
+                  >
+                    <option value="all">All accounts</option>
+                    <option value="critical">Has critical</option>
+                    <option value="warn">Has warn</option>
+                    <option value="info">Has info</option>
+                  </select>
+                </label>
+                <label className="flex items-center gap-2">
+                  Sort risk
+                  <select
+                    value={sortDir}
+                    onChange={(e) => setSortDir(e.target.value as SortDir)}
+                    className="bg-black/60 border border-white/10 px-2 py-1 rounded-lg font-mono"
+                  >
+                    <option value="desc">High → low</option>
+                    <option value="asc">Low → high</option>
+                  </select>
+                </label>
+                <span className="opacity-50">
+                  Showing {filteredBatch.length} / {batchResults.length}
+                </span>
+              </div>
+            )}
           </div>
         )}
 
@@ -334,37 +415,43 @@ export default function PermissionAuditor() {
           </div>
         )}
 
-        {mode === 'batch' && batchResults.length > 0 && (
+        {mode === 'batch' && filteredBatch.length > 0 && (
           <div className="space-y-4">
-            {[...batchResults]
-              .sort((a, b) => b.riskScore - a.riskScore)
-              .map((r) => (
-                <div
-                  key={r.account}
-                  className="border border-white/10 bg-black/40 p-4 rounded-xl text-sm"
-                >
-                  <div className="flex justify-between font-mono mb-2">
-                    <span>{r.account}</span>
-                    <span
-                      className={
-                        r.riskScore > 60 ? 'text-red-400' : 'text-emerald-400'
-                      }
-                    >
-                      risk {r.riskScore} ({riskScoreLabel(r.riskScore)})
-                    </span>
-                  </div>
-                  <p className="text-xs opacity-70 mb-2">{r.summary}</p>
-                  <ul className="text-xs space-y-1 opacity-80">
-                    {r.findings.slice(0, 5).map((f) => (
-                      <li key={f.id}>
-                        [{f.severity}] {f.message}
-                      </li>
-                    ))}
-                  </ul>
+            {filteredBatch.map((r) => (
+              <div
+                key={r.account}
+                className="border border-white/10 bg-black/40 p-4 rounded-xl text-sm"
+              >
+                <div className="flex justify-between font-mono mb-2">
+                  <span>{r.account}</span>
+                  <span
+                    className={
+                      r.riskScore > 60 ? 'text-red-400' : 'text-emerald-400'
+                    }
+                  >
+                    risk {r.riskScore} ({riskScoreLabel(r.riskScore)})
+                  </span>
                 </div>
-              ))}
+                <p className="text-xs opacity-70 mb-2">{r.summary}</p>
+                <ul className="text-xs space-y-1 opacity-80">
+                  {r.findings.slice(0, 5).map((f) => (
+                    <li key={f.id}>
+                      [{f.severity}] {f.message}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         )}
+
+        {mode === 'batch' &&
+          batchResults.length > 0 &&
+          filteredBatch.length === 0 && (
+            <p className="text-sm opacity-50">
+              No accounts match the current severity filter.
+            </p>
+          )}
 
         {!result && mode === 'live' && !loading && !error && (
           <p className="text-sm opacity-50">
