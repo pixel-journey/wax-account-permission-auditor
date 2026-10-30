@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useCallback, useMemo, useState } from 'react';
+import { RelatedBlueprints } from '../examples/RelatedBlueprints';
 import {
   auditAccountPermissions,
-  demoActiveControlsOwner,
+  demoSelfActiveOnOwner,
+  demoSocialOwner,
   demoStrongerOwner,
   demoWaitGated,
   demoWeakOwner,
@@ -18,6 +20,8 @@ import {
   fetchAccountPermissionsSafe,
   fetchManyAccountPermissionsSafe,
 } from '../examples/live/chain';
+import { AUDITOR_MYTHS } from '../examples/myths';
+import { DEFAULT_RPC_URL, RPC_ENDPOINTS } from '../examples/rpcEndpoints';
 import { riskScoreLabel } from '../examples/severityLabel';
 import type { PermissionAuditResult } from '../examples/types';
 
@@ -26,12 +30,14 @@ type Mode =
   | 'batch'
   | 'weak'
   | 'strong'
-  | 'activeowner'
+  | 'selfactive'
+  | 'social'
   | 'wait';
 
 export default function PermissionAuditor() {
   const [mode, setMode] = useState<Mode>('live');
   const [account, setAccount] = useState('eosio');
+  const [rpcUrl, setRpcUrl] = useState(DEFAULT_RPC_URL);
   const [batchText, setBatchText] = useState('eosio\natomicassets');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,8 +53,9 @@ export default function PermissionAuditor() {
   const demoResult = useMemo(() => {
     if (mode === 'weak') return auditAccountPermissions(demoWeakOwner());
     if (mode === 'strong') return auditAccountPermissions(demoStrongerOwner());
-    if (mode === 'activeowner')
-      return auditAccountPermissions(demoActiveControlsOwner());
+    if (mode === 'selfactive')
+      return auditAccountPermissions(demoSelfActiveOnOwner());
+    if (mode === 'social') return auditAccountPermissions(demoSocialOwner());
     if (mode === 'wait') return auditAccountPermissions(demoWaitGated());
     return null;
   }, [mode]);
@@ -69,16 +76,16 @@ export default function PermissionAuditor() {
     setLoading(true);
     setError(null);
     setMeta(null);
-    const r = await fetchAccountPermissionsSafe(account);
+    const r = await fetchAccountPermissionsSafe(account, { rpcBase: rpcUrl });
     setLoading(false);
     if (!r.ok) {
-      setError(`Soft-fail: ${r.reason}`);
+      setError(`Soft-fail (${new URL(rpcUrl).hostname}): ${r.reason}`);
       setLiveResult(null);
       return;
     }
     setLiveResult(auditAccountPermissions(r.permissions));
     setMeta(`get_account · ${r.source}`);
-  }, [account]);
+  }, [account, rpcUrl]);
 
   const runBatch = useCallback(async () => {
     const names = batchText
@@ -94,18 +101,19 @@ export default function PermissionAuditor() {
     setBatchResults([]);
     const { ok, failed } = await fetchManyAccountPermissionsSafe(names, {
       delayMs: 200,
+      rpcBase: rpcUrl,
     });
     const out = ok.map((x) => auditAccountPermissions(x.permissions));
     setBatchResults(out);
     setLoading(false);
     setMeta(
       failed.length
-        ? `Audited ${out.length}; soft-fails: ${failed
-            .map((f) => `${f.account}: ${f.reason}`)
-            .join('; ')}`
-        : `Audited ${out.length} account(s) (200ms spacing)`
+        ? `Audited ${out.length} via ${new URL(rpcUrl).hostname}; soft-fails: ${
+            failed.map((f) => `${f.account}: ${f.reason}`).join('; ')
+          }`
+        : `Audited ${out.length} account(s) via ${new URL(rpcUrl).hostname} (200ms spacing)`
     );
-  }, [batchText]);
+  }, [batchText, rpcUrl]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white p-8">
@@ -114,12 +122,32 @@ export default function PermissionAuditor() {
           PERMISSION AUDITOR
         </div>
         <div className="text-xs opacity-60 mb-2">
-          Pixel Journey · Passes 1–4 frozen · educational-reference
+          Pixel Journey · Pass 6 · educational-reference
         </div>
-        <p className="text-xs opacity-50 mb-8 max-w-2xl">
-          Structure rules only — linkauth targets are not fully visible via
-          get_account (see LINKAUTH.md). Prefer WharfKit for authority changes.
+        <p className="text-xs opacity-50 mb-6 max-w-2xl">
+          Structure rules only. Same-account <code>@active</code> on owner is
+          critical; foreign helpers are social recovery (info). Prefer WharfKit
+          for authority changes.
         </p>
+
+        <section
+          className="rounded-2xl border border-fuchsia-500/25 bg-fuchsia-500/5 p-4 text-xs space-y-3 max-w-2xl mb-6"
+          aria-label="Myths"
+        >
+          <h2 className="text-sm font-semibold text-fuchsia-100">Myths vs reality</h2>
+          {AUDITOR_MYTHS.map((m) => (
+            <div key={m.myth}>
+              <p className="text-red-200/90">
+                <span className="opacity-60">Myth: </span>
+                {m.myth}
+              </p>
+              <p className="text-emerald-100/90 mt-0.5">
+                <span className="opacity-60">Reality: </span>
+                {m.reality}
+              </p>
+            </div>
+          ))}
+        </section>
 
         <div className="flex flex-wrap gap-2 mb-6">
           {(
@@ -128,7 +156,8 @@ export default function PermissionAuditor() {
               ['batch', 'Batch'],
               ['weak', 'Weak owner'],
               ['strong', 'Multi-key'],
-              ['activeowner', 'Active on owner'],
+              ['selfactive', 'Self@active on owner'],
+              ['social', 'Social 2-of-3'],
               ['wait', 'Wait-gated'],
             ] as const
           ).map(([m, label]) => (
@@ -144,6 +173,23 @@ export default function PermissionAuditor() {
             </button>
           ))}
         </div>
+
+        {(mode === 'live' || mode === 'batch') && (
+          <label className="flex items-center gap-2 text-xs opacity-80 mb-3">
+            RPC
+            <select
+              value={rpcUrl}
+              onChange={(e) => setRpcUrl(e.target.value)}
+              className="bg-black/60 border border-white/10 px-3 py-2 rounded-xl font-mono text-sm"
+            >
+              {RPC_ENDPOINTS.map((e) => (
+                <option key={e.id} value={e.url}>
+                  {e.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         {mode === 'live' && (
           <div className="border border-white/10 bg-black/40 p-4 rounded-2xl mb-6 flex flex-col sm:flex-row gap-3">
@@ -325,6 +371,8 @@ export default function PermissionAuditor() {
             Enter a WAX account and load live permissions from chain RPC.
           </p>
         )}
+
+        <RelatedBlueprints />
       </div>
     </div>
   );

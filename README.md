@@ -1,18 +1,18 @@
 # wax-account-permission-auditor
 
 > **Trust label:** `educational-reference`  
-> **Status:** Passes **1–5** (2026-10-30)
+> **Status:** Passes **1–6** (2026-10-30)
 
-Pure **rule-based audit** of Antelope permission structures — batch-friendly via `auditMany` / paced live fetch.
+Batch-friendly **rule audit** of Antelope permission structures.
 
-**Pass 5:** Aligned with visualizer — only **same-account** `@active` on owner is critical; foreign helpers are social-recovery **info**.
+**Pass 6:** Multi-RPC chooser · Social / self-active demos in UI · Myths panel · Related blueprints.
 
 ```bash
 npm install && npm test && npm run dev
 ```
 
-[EDUCATION.md](./EDUCATION.md) · [RISK-SCORING.md](./RISK-SCORING.md) · [LINKAUTH.md](./LINKAUTH.md)
+[EDUCATION.md](./EDUCATION.md) · [RISK-SCORING.md](./RISK-SCORING.md)
 
-Companion: [wax-permission-visualizer-and-editor](https://github.com/pixel-journey/wax-permission-visualizer-and-editor) (Passes 1–19).
+Companion: [wax-permission-visualizer-and-editor](https://github.com/pixel-journey/wax-permission-visualizer-and-editor)
 
 MIT — Pixel Journey
