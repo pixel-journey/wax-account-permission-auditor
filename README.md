@@ -1,24 +1,25 @@
 # wax-account-permission-auditor
 
-> **Trust label:** `educational-reference`  
-> **Status:** **Passes 1–10 · scope frozen** (2026-10-30)
+Educational **rule audit** of Antelope / WAX permission structures.
 
-Batch-friendly **rule audit** of Antelope / WAX permission structures.
-
-- Soft-fail live + paced batch · multi-RPC  
-- Same-account `@active` on owner = critical; foreign helpers = social recovery  
-- The weak single-key fixture scores `84` (`owner-spf` and `owner-single-key`, both critical). The multi-key fixture scores `34` (`low`). The compare delta is `50`. Neither score is a certification.
-- Compare · histogram · CSV · share `?a=` · localStorage  
-- **No** auto authority broadcast  
+Detects high-risk patterns such as `account@owner` including the same account's `@active` (self-control of owner), single-key owner thresholds, and empty permission trees. Scores are teaching signals only — never chain enforcement and never a broadcast path.
 
 ```bash
 npm install && npm test && npm run dev
 ```
 
-[EDUCATION.md](./EDUCATION.md) · [POLICY.md](./POLICY.md) · [RISK-SCORING.md](./RISK-SCORING.md) · [LINKAUTH.md](./LINKAUTH.md)
+| Doc | Role |
+| --- | --- |
+| [EDUCATION.md](./EDUCATION.md) | Learning path + attack table |
+| [RISK-SCORING.md](./RISK-SCORING.md) | Score bands and finding ids |
+| [LINKAUTH.md](./LINKAUTH.md) | linkauth context |
+| [POLICY.md](./POLICY.md) | Scope boundaries |
+| [SECURITY.md](./SECURITY.md) | Threat model honesty |
 
-Companion: [visualizer](https://github.com/pixel-journey/wax-permission-visualizer-and-editor) · [session keys](https://github.com/pixel-journey/wax-wharfkit-session-keys-and-linked-permissions) · [rotation](https://github.com/pixel-journey/wax-safe-key-rotation-assistant) · [social recovery](https://github.com/pixel-journey/wax-social-recovery-and-key-backup-tools) · [eosio.msig](https://github.com/pixel-journey/wax-multi-sig-proposal-builder-and-simulator) · [hardware](https://github.com/pixel-journey/wax-hardware-wallet-integration-patterns)
+Companions: [permission visualizer](https://github.com/pixel-journey/wax-permission-visualizer-and-editor) · [session keys](https://github.com/pixel-journey/wax-wharfkit-session-keys-and-linked-permissions) · [key rotation](https://github.com/pixel-journey/wax-safe-key-rotation-assistant) · [social recovery](https://github.com/pixel-journey/wax-social-recovery-and-key-backup-tools) · [msig simulator](https://github.com/pixel-journey/wax-multi-sig-proposal-builder-and-simulator) · [hardware patterns](https://github.com/pixel-journey/wax-hardware-wallet-integration-patterns)
 
-Official: [WAX permissions](https://docs.wax.io/build/core-concepts/permissions). No `updateauth` broadcast.
+Official: [WAX permissions](https://docs.wax.io/build/core-concepts/permissions).
+
+**No** `updateauth` broadcast from this lab.
 
 MIT — Pixel Journey
