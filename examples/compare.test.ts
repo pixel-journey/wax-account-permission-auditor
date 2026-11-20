@@ -12,8 +12,12 @@ describe("compare", () => {
       const a = auditAccountPermissions(demoWeakOwner());
       const b = auditAccountPermissions(demoStrongerOwner());
       const c = compareAuditResults(a, b);
-      expect(c.higherRisk).toBe(a.account);
-      expect(c.delta).toBeGreaterThan(0);
+      expect(c.higherRisk).toBe("demoweak");
+      expect(c.scoreA).toBe(84);
+      expect(c.scoreB).toBe(34);
+      expect(c.delta).toBe(50);
+      expect(c.labelA).toBe("critical");
+      expect(c.labelB).toBe("low");
     });
 
   it("histogram counts",
@@ -23,6 +27,6 @@ describe("compare", () => {
         auditAccountPermissions(demoStrongerOwner()),
       ];
       const h = riskHistogram(results);
-      expect(h.low + h.moderate + h.high + h.critical).toBe(2);
+      expect(h).toEqual({ low: 1, moderate: 0, high: 0, critical: 1 });
     });
 });
