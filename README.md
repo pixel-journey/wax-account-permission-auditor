@@ -7,6 +7,7 @@ Batch-friendly **rule audit** of Antelope / WAX permission structures.
 
 - Soft-fail live + paced batch · multi-RPC  
 - Same-account `@active` on owner = critical; foreign helpers = social recovery  
+- The weak single-key fixture scores `84` (`owner-spf` and `owner-single-key`, both critical). The multi-key fixture scores `34` and has no critical finding. Neither score is a certification.
 - Compare · histogram · CSV · share `?a=` · localStorage  
 - **No** auto authority broadcast  
 

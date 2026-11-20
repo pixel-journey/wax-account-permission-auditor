@@ -18,8 +18,18 @@ describe("auditAccountPermissions", () => {
   it("flags weak single-key owner as higher risk than multi-key", () => {
     const weak = auditAccountPermissions(demoWeakOwner());
     const strong = auditAccountPermissions(demoStrongerOwner());
-    expect(weak.riskScore).toBeGreaterThan(strong.riskScore);
-    expect(weak.findings.some((f) => f.severity === "critical")).toBe(true);
+    expect(weak.riskScore).toBe(84);
+    expect(strong.riskScore).toBe(34);
+    expect(weak.findings.map((f) => `${f.id}:${f.severity}`)).toEqual([
+      "owner-spf:critical",
+      "owner-single-key:critical",
+      "active-spf:warn",
+      "active-single:warn",
+    ]);
+    expect(strong.findings.map((f) => `${f.id}:${f.severity}`)).toEqual([
+      "active-spf:warn",
+      "active-single:warn",
+    ]);
   });
 
   it("detects empty permissions", () => {
