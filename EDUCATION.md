@@ -45,6 +45,15 @@ npm test
 Baseline 10 + 25/critical + 12/warn + 3/info, cap 100.  
 Bands: low 0–34 · moderate 35–54 · high 55–74 · critical ≥75.
 
+### Attack → test
+
+| Attack | Lab behavior |
+| --- | --- |
+| Self-active on owner | critical |
+| Foreign bob@active on owner | info (not same critical) |
+| Empty permission list | finding `empty` |
+| Score as freeze authority | educational only |
+
 ---
 
 ## Masterclass — role vs visualizer
@@ -58,9 +67,9 @@ Cluster: social-recovery · session-keys · safe-key-rotation · msig simulator.
 
 ### Exercises
 
-1. Why is self-active on owner critical?  
-2. Is bob@active on alice@owner the same critical? (No.)  
-3. Does this broadcast `updateauth`? (No.)
+1. Why is self-active on owner critical? (Account can rewrite its own owner.)  
+2. Is bob@active on alice@owner the same critical? (**No**.)  
+3. Does this broadcast `updateauth`? (**No**.)
 
 ---
 
