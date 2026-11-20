@@ -16,6 +16,8 @@ npm install && npm test && npm run dev
 
 [EDUCATION.md](./EDUCATION.md) · [POLICY.md](./POLICY.md) · [RISK-SCORING.md](./RISK-SCORING.md) · [LINKAUTH.md](./LINKAUTH.md)
 
-Companion: [wax-permission-visualizer-and-editor](https://github.com/pixel-journey/wax-permission-visualizer-and-editor)
+Companion: [wax-permission-visualizer-and-editor](https://github.com/pixel-journey/wax-permission-visualizer-and-editor) · [session keys](https://github.com/pixel-journey/wax-wharfkit-session-keys-and-linked-permissions) · [key rotation](https://github.com/pixel-journey/wax-safe-key-rotation-assistant)
+
+Official: [WAX permissions](https://docs.wax.io/build/core-concepts/permissions). No `updateauth` broadcast.
 
 MIT — Pixel Journey
