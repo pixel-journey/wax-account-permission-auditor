@@ -46,4 +46,13 @@ One critical finding alone is **35 → moderate**. The finding is still critical
 
 ## Honesty limits
 
-Fixtures are arguments. No wasm. No broadcast. Tree editing lives in the permission visualizer. Session keys and `linkauth` live in the session-keys lab.
+Fixtures are arguments. No wasm. No broadcast.
+
+| Sibling | Distinction |
+| --- | --- |
+| [permission visualizer](https://github.com/pixel-journey/wax-permission-visualizer-and-editor) | Editable tree |
+| [session keys](https://github.com/pixel-journey/wax-wharfkit-session-keys-and-linked-permissions) | linkauth scope |
+| [key rotation](https://github.com/pixel-journey/wax-safe-key-rotation-assistant) | Add-first plan |
+| [social recovery](https://github.com/pixel-journey/wax-social-recovery-and-key-backup-tools) | Helper design |
+
+[docs.wax.io permissions](https://docs.wax.io/build/core-concepts/permissions) · [WharfKit](https://wharfkit.com/).
