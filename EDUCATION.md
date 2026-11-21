@@ -17,15 +17,20 @@ Antelope authorization is a **permission tree** (owner / active / custom), not a
 
 ## Beginner — one scene
 
+A weak single-key owner scores **84** and is critical. A multi-key owner scores **34** and is low. The difference is 50. Neither number is a certification.
+
+An empty permission tree produces the finding id `empty`.
+
+If `alice@owner` includes `alice@active`, that is critical: the same account must not control its own owner. If `alice@owner` includes `bob@active`, that is an info-level social-recovery shape. A foreign helper is not the same bug as self-control.
+
 | Input pattern | Locked finding |
 | --- | --- |
-| Weak single-key owner | at least one `critical`; higher score than multi-key |
+| Weak single-key owner | score `84`, critical |
+| Multi-key owner | score `34`, low |
 | Empty permissions | finding id `empty` |
 | `alice@owner` includes `alice@active` | critical: must not control its own owner |
 | `alice@owner` includes `bob@active` | info / social recovery shape |
 | Wait-gated threshold | finding id containing `wait-gated` |
-
-`alice@owner` including `alice@active` is the critical case. A foreign helper on owner is not the same bug.
 
 ```bash
 npm test
