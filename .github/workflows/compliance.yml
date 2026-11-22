@@ -1,0 +1,16 @@
+# Copy to .github/workflows/compliance.yml in an educational repository.
+# Pin to a commit or tag once this file is tagged. @main is the current line.
+name: Compliance
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  compliance:
+    uses: pixel-journey/pixel-journey-standards/.github/workflows/reusable-org-compliance.yml@main
+  docs:
+    uses: pixel-journey/pixel-journey-standards/.github/workflows/reusable-docs-qa.yml@main
+    with:
+      markdownlint: false
